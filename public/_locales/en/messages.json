@@ -1,0 +1,62 @@
+{
+  "app_eyebrow": {
+    "message": "Aurena DevMate · OData Sniffer"
+  },
+  "header_title": {
+    "message": "Projection Requests"
+  },
+  "tab_label": {
+    "message": "Tab $1"
+  },
+  "button_clear": {
+    "message": "Clear"
+  },
+  "button_refresh": {
+    "message": "Refresh"
+  },
+  "search_placeholder": {
+    "message": "Search…"
+  },
+  "loading_label": {
+    "message": "Loading…"
+  },
+  "error_active_tab": {
+    "message": "Unable to fetch the active tab."
+  },
+  "error_get_requests": {
+    "message": "Unable to load requests."
+  },
+  "empty_tab_none": {
+    "message": "No requests have been intercepted yet."
+  },
+  "empty_filter_none": {
+    "message": "No requests match the current filter."
+  },
+  "empty_tab_stored": {
+    "message": "No requests are stored for this tab."
+  },
+  "button_doc_openapi": {
+    "message": "OpenAPI Docs"
+  },
+  "badge_custom_fields": {
+    "message": "Custom Fields"
+  },
+  "label_projection": {
+    "message": "Projection"
+  },
+  "label_endpoint": {
+    "message": "Endpoint"
+  },
+  "label_unknown_projection": {
+    "message": "Unknown projection"
+  },
+  "custom_fields_section": {
+    "message": "Detected custom fields"
+  },
+  "button_copy_url": {
+    "message": "Copy URL"
+  },
+  "button_copy_curl": {
+    "message": "Copy cURL"
+  }
+}
