@@ -1,0 +1,75 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  background: #0f172a;
+  color: #e2e8f0;
+}
+
+#app {
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.viewer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 11px;
+  margin: 0;
+  color: #94a3b8;
+}
+
+h1 {
+  margin: 4px 0;
+  font-size: 24px;
+  color: #f8fafc;
+}
+
+.subtitle {
+  margin: 0;
+  color: #cbd5f5;
+  font-size: 13px;
+}
+
+button {
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #6366f1, #a855f7);
+  color: #fff;
+  padding: 10px 16px;
+  cursor: pointer;
+  font-size: 13px;
+  box-shadow: 0 10px 20px rgba(79, 70, 229, 0.4);
+}
+
+button:hover {
+  opacity: 0.92;
+}
+
+.status {
+  color: #cbd5f5;
+  font-size: 14px;
+  margin-bottom: 12px;
+}
+
+#swagger-ui {
+  background: #fff;
+  border-radius: 12px;
+  padding: 10px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.3);
+}

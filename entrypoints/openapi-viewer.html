@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="manifest.type" content="page" />
+  <title>DevMate · Projection Docs</title>
+  <link rel="stylesheet" href="./openapi-viewer/style.css" />
+</head>
+
+<body>
+  <div id="app">
+    <header class="viewer-header">
+      <div>
+        <p class="eyebrow">Aurena DevMate</p>
+        <h1>Projection Documentation</h1>
+        <p class="subtitle" id="projection-name"></p>
+      </div>
+      <button id="back-button" type="button">← Back</button>
+    </header>
+    <section id="status" class="status">Loading documentation…</section>
+    <div id="swagger-ui"></div>
+  </div>
+  <script type="module" src="./openapi-viewer/main.ts"></script>
+</body>
+
+</html>

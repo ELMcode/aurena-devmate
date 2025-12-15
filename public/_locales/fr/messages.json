@@ -1,0 +1,62 @@
+{
+  "app_eyebrow": {
+    "message": "Aurena DevMate · OData Sniffer"
+  },
+  "header_title": {
+    "message": "Requêtes Projection"
+  },
+  "tab_label": {
+    "message": "Onglet $1"
+  },
+  "button_clear": {
+    "message": "Vider"
+  },
+  "button_refresh": {
+    "message": "Rafraîchir"
+  },
+  "search_placeholder": {
+    "message": "Rechercher…"
+  },
+  "loading_label": {
+    "message": "Chargement…"
+  },
+  "error_active_tab": {
+    "message": "Impossible de récupérer l’onglet actif."
+  },
+  "error_get_requests": {
+    "message": "Impossible de charger les requêtes."
+  },
+  "empty_tab_none": {
+    "message": "Aucune requête interceptée pour l’instant."
+  },
+  "empty_filter_none": {
+    "message": "Aucune requête ne correspond au filtre."
+  },
+  "empty_tab_stored": {
+    "message": "Aucune requête stockée pour cet onglet."
+  },
+  "button_doc_openapi": {
+    "message": "Docs OpenAPI"
+  },
+  "badge_custom_fields": {
+    "message": "Champs Custom"
+  },
+  "label_projection": {
+    "message": "Projection"
+  },
+  "label_endpoint": {
+    "message": "Endpoint"
+  },
+  "label_unknown_projection": {
+    "message": "Projection inconnue"
+  },
+  "custom_fields_section": {
+    "message": "Champs custom détectés"
+  },
+  "button_copy_url": {
+    "message": "Copier URL"
+  },
+  "button_copy_curl": {
+    "message": "Copier cURL"
+  }
+}
