@@ -1,4 +1,9 @@
 import { defineConfig } from 'wxt';
+import { config as loadEnv } from 'dotenv';
+
+if (!process.env.CHROMIUM_PROFILE_PATH) {
+  loadEnv({ path: '.env.development.chrome' });
+}
 
 // See https://wxt.dev/api/config.html
 const chromiumProfile = process.env.CHROMIUM_PROFILE_PATH;
