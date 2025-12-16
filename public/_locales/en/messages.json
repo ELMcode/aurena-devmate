@@ -5,9 +5,6 @@
   "header_title": {
     "message": "Projection Requests"
   },
-  "tab_label": {
-    "message": "Tab $1"
-  },
   "button_clear": {
     "message": "Clear"
   },
@@ -50,6 +47,9 @@
   "label_unknown_projection": {
     "message": "Unknown projection"
   },
+  "button_back_home": {
+    "message": "Back to home"
+  },
   "custom_fields_section": {
     "message": "Detected custom fields"
   },
@@ -58,5 +58,77 @@
   },
   "button_copy_curl": {
     "message": "Copy cURL"
+  },
+  "home_eyebrow": {
+    "message": "Aurena DevMate"
+  },
+  "feature_badge_live": {
+    "message": "Live"
+  },
+  "feature_badge_soon": {
+    "message": "Soon"
+  },
+  "feature_coming_soon": {
+    "message": "Coming soon"
+  },
+  "button_open_feature": {
+    "message": "Open"
+  },
+  "feature_odata_title": {
+    "message": "OData Sniffer"
+  },
+  "feature_odata_desc": {
+    "message": "Inspect Aurena projections, filters, and custom fields directly from the popup."
+  },
+  "feature_future_title": {
+    "message": "Next feature"
+  },
+  "feature_future_desc": {
+    "message": "Reserved for the next DevMate tool."
+  },
+  "placeholder_title": {
+    "message": "Feature coming soon"
+  },
+  "placeholder_desc": {
+    "message": "This space is reserved for the next DevMate capability. Check back shortly."
+  },
+  "instance_label_current": {
+    "message": "Environment"
+  },
+  "instance_label_unknown": {
+    "message": "Environment unknown"
+  },
+  "settings_eyebrow": {
+    "message": "Configuration"
+  },
+  "settings_title": {
+    "message": "Environment settings"
+  },
+  "settings_desc": {
+    "message": "Set the base URL and tag color for each environment."
+  },
+  "settings_url_label": {
+    "message": "Base URL"
+  },
+  "settings_url_placeholder": {
+    "message": "https://your-instance/main/ifsapplications/"
+  },
+  "settings_color_label": {
+    "message": "Tag color"
+  },
+  "settings_helper": {
+    "message": "The environment is detected when the tab URL starts with the configured base URL."
+  },
+  "button_cancel": {
+    "message": "Cancel"
+  },
+  "button_save": {
+    "message": "Save"
+  },
+  "button_refresh_context": {
+    "message": "Refresh"
+  },
+  "instance_refreshing": {
+    "message": "Loading…"
   }
 }
