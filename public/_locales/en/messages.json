@@ -113,6 +113,12 @@
   "settings_url_placeholder": {
     "message": "https://your-instance/main/ifsapplications/"
   },
+  "settings_name_label": {
+    "message": "Instance name"
+  },
+  "settings_name_placeholder": {
+    "message": "My UAT, Prod, ... "
+  },
   "settings_color_label": {
     "message": "Tag color"
   },

@@ -107,11 +107,17 @@
   "settings_desc": {
     "message": "Renseignez l'URL de base et la couleur du tag pour chaque environnement."
   },
+  "settings_name_label": {
+    "message": "Nom de l'environnement"
+  },
+  "settings_name_placeholder": {
+    "message": "Mon UAT, Prod, ..."
+  },
   "settings_url_label": {
     "message": "URL de base"
   },
   "settings_url_placeholder": {
-    "message": "https://your-instance.ifs.cloud"
+    "message": "https://votre-instance.ifs.cloud"
   },
   "settings_color_label": {
     "message": "Couleur du tag"
