@@ -8,7 +8,7 @@ import {
   normalizeUrl,
   saveEnvSettings,
   type EnvSettings,
-  type Environment,
+  type EnvInstance,
 } from '@/utils/env-settings';
 
 type MessageKey = Parameters<typeof browser.i18n.getMessage>[0];
@@ -52,29 +52,32 @@ const features: Feature[] = [
 
 const activeFeature = ref<'home' | FeatureId>('home');
 
-const instanceInfo = ref<{ environment: Environment | null }>({ environment: null });
+const instanceInfo = ref<{ instance: EnvInstance | null }>({ instance: null });
 const envSettings = ref<EnvSettings>(getDefaultEnvSettings());
 const draftSettings = ref<EnvSettings>(getDefaultEnvSettings());
+
+function generateId() {
+  return crypto.randomUUID ? crypto.randomUUID() : `env-${Date.now().toString(16)}-${Math.random().toString(16).slice(2)}`;
+}
 
 async function hydrateSettings() {
   envSettings.value = await loadEnvSettings();
 }
 
-function matchEnvironment(url: URL): Environment | null {
+function matchInstance(url: URL): EnvInstance | null {
   const href = url.href;
   const host = url.host;
 
-  for (const env of Object.keys(envSettings.value) as Environment[]) {
-    const cfg = envSettings.value[env];
+  for (const cfg of envSettings.value) {
     if (!cfg.url.trim()) continue;
     try {
       const target = new URL(cfg.url);
       if (host === target.host && href.startsWith(target.origin + target.pathname)) {
-        return env;
+        return cfg;
       }
-      if (href.startsWith(target.toString())) return env;
+      if (href.startsWith(target.toString())) return cfg;
     } catch {
-      if (href.includes(cfg.url.trim())) return env;
+      if (href.includes(cfg.url.trim())) return cfg;
     }
   }
   return null;
@@ -85,15 +88,15 @@ async function detectInstance() {
     const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
     const url = tab?.url ? new URL(tab.url) : null;
     if (!url) {
-      instanceInfo.value = { environment: null };
+      instanceInfo.value = { instance: null };
       return;
     }
     instanceInfo.value = {
-      environment: matchEnvironment(url),
+      instance: matchInstance(url),
     };
   } catch (err) {
     console.error(err);
-    instanceInfo.value = { environment: null };
+    instanceInfo.value = { instance: null };
   }
 }
 
@@ -116,14 +119,11 @@ onMounted(() => {
 });
 
 const environmentClass = computed(() => {
-  const env = instanceInfo.value.environment;
-  return env ? `env-${env.toLowerCase()}` : 'env-unknown';
+  return instanceInfo.value.instance ? 'env-detected' : 'env-unknown';
 });
 
 const environmentStyle = computed(() => {
-  const env = instanceInfo.value.environment;
-  if (!env) return {};
-  const color = envSettings.value[env]?.color;
+  const color = instanceInfo.value.instance?.color;
   if (!color) return {};
 
   const hex = color.replace('#', '');
@@ -157,10 +157,10 @@ function openSettings() {
 }
 
 async function saveSettings() {
-  const normalized = JSON.parse(JSON.stringify(draftSettings.value)) as EnvSettings;
-  (Object.keys(normalized) as Environment[]).forEach((key) => {
-    normalized[key].url = normalizeUrl(normalized[key].url);
-  });
+  const normalized = (JSON.parse(JSON.stringify(draftSettings.value)) as EnvSettings).map((entry) => ({
+    ...entry,
+    url: normalizeUrl(entry.url),
+  }));
   envSettings.value = normalized;
   await saveEnvSettings(envSettings.value);
   await detectInstance();
@@ -172,10 +172,26 @@ function cancelSettings() {
   activeFeature.value = 'home';
 }
 
-const envList = computed<Environment[]>(() => ['PROD', 'UAT', 'CFG', 'DEV']);
+function addInstance() {
+  draftSettings.value = [
+    ...draftSettings.value,
+    {
+      id: generateId(),
+      name: `Instance ${draftSettings.value.length + 1}`,
+      url: '',
+      color: '#4f46e5',
+    },
+  ];
+}
 
-function previewStyle(env: Environment) {
-  const color = draftSettings.value[env]?.color || '#475569';
+function removeInstance(id: string) {
+  if (draftSettings.value.length <= 1) return;
+  draftSettings.value = draftSettings.value.filter((item) => item.id !== id);
+}
+
+function previewStyle(id: string) {
+  const target = draftSettings.value.find((item) => item.id === id);
+  const color = target?.color || '#475569';
   return {
     backgroundColor: `${color}22`,
     borderColor: `${color}55`,
@@ -193,7 +209,7 @@ function previewStyle(env: Environment) {
         </div>
         <div class="header-right">
           <span class="badge env" :class="environmentClass" :style="environmentStyle">
-            {{ instanceInfo.environment ?? t('instance_label_unknown') }}
+            {{ instanceInfo.instance?.name ?? t('instance_label_unknown') }}
           </span>
           <button type="button" class="icon ghost" title="Edit environment settings" @click="openSettings">
             ✏️
@@ -244,29 +260,50 @@ function previewStyle(env: Environment) {
 
         <div class="settings-grid">
           <div
-            v-for="env in envList"
-            :key="env"
+            v-for="item in draftSettings"
+            :key="item.id"
             class="settings-card"
           >
             <div class="settings-card-head">
-              <span class="badge env" :style="previewStyle(env)">
-                {{ env }}
+              <span class="badge env" :style="previewStyle(item.id)">
+                {{ item.name || t('instance_label_unknown') }}
               </span>
+              <button
+                v-if="draftSettings.length > 1"
+                type="button"
+                class="icon ghost tiny remove"
+                title="Remove instance"
+                @click="removeInstance(item.id)"
+              >
+                🗑️
+              </button>
             </div>
+            <label class="field">
+              <span class="label">{{ t('settings_name_label') }}</span>
+              <input
+                v-model="item.name"
+                type="text"
+                :placeholder="t('settings_name_placeholder')"
+              />
+            </label>
             <label class="field">
               <span class="label">{{ t('settings_url_label') }}</span>
               <input
-                v-model="draftSettings[env].url"
+                v-model="item.url"
                 type="text"
                 :placeholder="t('settings_url_placeholder')"
               />
             </label>
             <label class="field color-field">
               <span class="label">{{ t('settings_color_label') }}</span>
-              <input v-model="draftSettings[env].color" type="color" />
-              <input v-model="draftSettings[env].color" type="text" class="color-text" />
+              <input v-model="item.color" type="color" />
+              <input v-model="item.color" type="text" class="color-text" />
             </label>
           </div>
+        </div>
+
+        <div class="settings-actions gap">
+          <button type="button" class="icon ghost" title="Add instance" @click="addInstance">＋</button>
         </div>
 
         <p class="helper">{{ t('settings_helper') }}</p>
@@ -416,25 +453,10 @@ button:hover:enabled {
   border: 1px solid rgba(79, 70, 229, 0.16);
   letter-spacing: 0.06em;
 }
-.badge.env.env-prod {
-  background: rgba(59, 130, 246, 0.16);
-  color: #1d4ed8;
-  border-color: rgba(59, 130, 246, 0.32);
-}
-.badge.env.env-uat {
-  background: rgba(236, 72, 153, 0.1);
-  color: #be185d;
-  border-color: rgba(236, 72, 153, 0.2);
-}
-.badge.env.env-cfg {
-  background: rgba(234, 179, 8, 0.18);
-  color: #854d0e;
-  border-color: rgba(234, 179, 8, 0.32);
-}
-.badge.env.env-dev {
-  background: rgba(79, 70, 229, 0.14);
-  color: #4338ca;
-  border-color: rgba(79, 70, 229, 0.28);
+.badge.env.env-detected {
+  background: rgba(79, 70, 229, 0.08);
+  color: #312e81;
+  border: 1px solid rgba(79, 70, 229, 0.16);
 }
 .badge.env.env-unknown {
   background: rgba(148, 163, 184, 0.2);
@@ -474,6 +496,10 @@ button:hover:enabled {
   justify-content: space-between;
   align-items: center;
 }
+.settings-card .remove {
+  padding: 6px 8px;
+  font-size: 12px;
+}
 .field {
   display: flex;
   flex-direction: column;
@@ -509,6 +535,9 @@ button:hover:enabled {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
+}
+.settings-actions.gap {
+  justify-content: flex-start;
 }
 .helper {
   margin: 0;
