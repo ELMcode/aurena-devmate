@@ -1,45 +1,15 @@
 <script lang="ts" setup>
 import { browser } from 'wxt/browser';
 import { computed, onMounted, ref } from 'vue';
-
-type UiRequest = {
-  id: string;
-  method: string;
-  url: string;
-  projection?: string;
-  resource?: string;
-  odata?: {
-    filter?: string;
-    select?: string;
-    orderby?: string;
-    expand?: string;
-    top?: string;
-    skip?: string;
-    raw: Record<string, string>;
-  };
-  statusCode?: number;
-  time: number;
-  curl: string;
-};
-
-type EnhancedRequest = UiRequest & {
-  when: string;
-  target: string;
-  hasCustomFields: boolean;
-  customFields: string[];
-  highlightRegex?: RegExp | null;
-  openApiUrl?: string | null;
-};
-
-const PROJECTION_MARKER = '/ifsapplications/projection/v1/';
-
-const tabId = ref<number | null>(null);
-const requests = ref<UiRequest[]>([]);
-const loading = ref(true);
-const error = ref<string | null>(null);
-const searchTerm = ref('');
-const expanded = ref(new Set<string>());
-const collapsedProjections = ref(new Set<string>());
+import OdataSniffer from '@/components/OdataSniffer.vue';
+import {
+  getDefaultEnvSettings,
+  loadEnvSettings,
+  normalizeUrl,
+  saveEnvSettings,
+  type EnvSettings,
+  type EnvInstance,
+} from '@/utils/env-settings';
 
 type MessageKey = Parameters<typeof browser.i18n.getMessage>[0];
 
@@ -51,294 +21,310 @@ const t = (key: MessageKey, substitutions: Array<string | number> = []) => {
   return message || key;
 };
 
-const currentTabTitle = computed(() => '');
-const totalRequests = computed(() => requests.value.length);
+type FeatureId = 'odata' | 'feature2' | 'feature3' | 'settings';
+type Feature = {
+  id: FeatureId;
+  titleKey: MessageKey;
+  descKey: MessageKey;
+  ready: boolean;
+};
 
-function buildOpenApiUrl(req: UiRequest): string | null {
-  if (!req.projection) return null;
-  const markerIndex = req.url.indexOf(PROJECTION_MARKER);
-  if (markerIndex === -1) return null;
-  const base = req.url.slice(0, markerIndex + PROJECTION_MARKER.length);
-  return `${base}${req.projection}.svc/$openapi`;
+const features: Feature[] = [
+  {
+    id: 'odata',
+    titleKey: 'feature_odata_title',
+    descKey: 'feature_odata_desc',
+    ready: true,
+  },
+  {
+    id: 'feature2',
+    titleKey: 'feature_future_title',
+    descKey: 'feature_future_desc',
+    ready: false,
+  },
+  {
+    id: 'feature3',
+    titleKey: 'feature_future_title',
+    descKey: 'feature_future_desc',
+    ready: false,
+  },
+];
+
+const activeFeature = ref<'home' | FeatureId>('home');
+
+const instanceInfo = ref<{ instance: EnvInstance | null }>({ instance: null });
+const envSettings = ref<EnvSettings>(getDefaultEnvSettings());
+const draftSettings = ref<EnvSettings>(getDefaultEnvSettings());
+
+function generateId() {
+  return crypto.randomUUID ? crypto.randomUUID() : `env-${Date.now().toString(16)}-${Math.random().toString(16).slice(2)}`;
 }
 
-async function resolveActiveTab() {
+async function hydrateSettings() {
+  envSettings.value = await loadEnvSettings();
+}
+
+function matchInstance(url: URL): EnvInstance | null {
+  const href = url.href;
+  const host = url.host;
+
+  for (const cfg of envSettings.value) {
+    if (!cfg.url.trim()) continue;
+    try {
+      const target = new URL(cfg.url);
+      if (host === target.host && href.startsWith(target.origin + target.pathname)) {
+        return cfg;
+      }
+      if (href.startsWith(target.toString())) return cfg;
+    } catch {
+      if (href.includes(cfg.url.trim())) return cfg;
+    }
+  }
+  return null;
+}
+
+async function detectInstance() {
   try {
     const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
-    tabId.value = tab?.id ?? null;
-  } catch (err) {
-    error.value = t('error_active_tab');
-    console.error(err);
-  }
-}
-
-async function refreshRequests() {
-  if (tabId.value === null) return;
-  loading.value = true;
-  try {
-    const data = await browser.runtime.sendMessage({ type: 'getRequests', tabId: tabId.value });
-    requests.value = Array.isArray(data) ? data : [];
-  } catch (err) {
-    error.value = t('error_get_requests');
-    console.error(err);
-  } finally {
-    loading.value = false;
-  }
-}
-
-async function clearRequests() {
-  if (tabId.value === null) return;
-  try {
-    const data = await browser.runtime.sendMessage({ type: 'clearRequests', tabId: tabId.value });
-    requests.value = Array.isArray(data) ? data : [];
+    const url = tab?.url ? new URL(tab.url) : null;
+    if (!url) {
+      instanceInfo.value = { instance: null };
+      return;
+    }
+    instanceInfo.value = {
+      instance: matchInstance(url),
+    };
   } catch (err) {
     console.error(err);
+    instanceInfo.value = { instance: null };
   }
 }
 
-async function copyText(text: string, label: string) {
-  try {
-    await navigator.clipboard.writeText(text);
-  } catch (err) {
-    console.error(`Clipboard error (${label})`, err);
-  }
+function openFeature(id: FeatureId) {
+  const feature = features.find((f) => f.id === id);
+  if (!feature?.ready) return;
+  activeFeature.value = id;
 }
 
-async function openDocsByUrl(url?: string | null) {
-  if (!url) return;
-  try {
-    const viewerUrl = `${browser.runtime.getURL('/openapi-viewer.html')}?spec=${encodeURIComponent(url)}`;
-    await browser.tabs.create({ url: viewerUrl });
-  } catch (err) {
-    console.error('Open docs error', err);
-  }
+function goHome() {
+  activeFeature.value = 'home';
+  void detectInstance();
 }
 
-function toggleDetails(id: string) {
-  const next = new Set(expanded.value);
-  if (next.has(id)) next.delete(id);
-  else next.add(id);
-  expanded.value = next;
-}
-
-function isExpanded(id: string) {
-  return expanded.value.has(id);
-}
-
-function toggleProjection(name: string) {
-  const next = new Set(collapsedProjections.value);
-  if (next.has(name)) next.delete(name);
-  else next.add(name);
-  collapsedProjections.value = next;
-}
-
-function isProjectionCollapsed(name: string) {
-  return collapsedProjections.value.has(name);
-}
-
-function escapeHtml(value: string) {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
-function escapeRegex(value: string) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-function highlightCustomFields(req: EnhancedRequest, value?: string) {
-  if (!value) return '';
-  const escaped = escapeHtml(value);
-  if (!req.highlightRegex) return escaped;
-  return escaped.replace(req.highlightRegex, '<span class="custom-highlight">$1</span>');
-}
-
-const enhancedRequests = computed<EnhancedRequest[]>(() => {
-  const q = searchTerm.value.trim().toLowerCase();
-  return requests.value
-    .map((req) => {
-      const when = new Date(req.time).toLocaleTimeString();
-      const target = req.resource || req.url.split('/').slice(-1)[0];
-      const concat = [req.url, req.odata?.select, req.odata?.filter, req.odata?.expand]
-        .filter(Boolean)
-        .join(' ');
-      const customFieldMatches = concat.match(/cf[_$][a-z0-9_]+/gi) ?? [];
-      const customFields = Array.from(new Set(customFieldMatches.map((f) => f)));
-      const hasCustomFields = customFields.length > 0;
-      const highlightRegex = hasCustomFields
-        ? new RegExp(`(${customFields.map(escapeRegex).join('|')})`, 'gi')
-        : null;
-      return {
-        ...req,
-        when,
-        target,
-        hasCustomFields,
-        customFields,
-        highlightRegex,
-        openApiUrl: buildOpenApiUrl(req),
-      };
-    })
-    .filter((req) => {
-      if (!q) return true;
-      const haystack = [
-        req.projection,
-        req.resource,
-        req.method,
-        req.url,
-        req.odata?.filter,
-        req.odata?.select,
-        req.odata?.expand,
-      ]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase();
-      return haystack.includes(q);
-    });
+onMounted(() => {
+  void (async () => {
+    await hydrateSettings();
+    await detectInstance();
+  })();
 });
 
-const groupedRequests = computed(() => {
-  const groups = new Map<
-    string,
-    { items: EnhancedRequest[]; openApiUrl?: string | null }
-  >();
-  enhancedRequests.value.forEach((req) => {
-    const key = req.projection ?? t('label_unknown_projection');
-    const entry = groups.get(key) ?? { items: [], openApiUrl: undefined };
-    entry.items.push(req);
-    if (!entry.openApiUrl && req.openApiUrl) entry.openApiUrl = req.openApiUrl;
-    groups.set(key, entry);
-  });
-  return Array.from(groups.entries()).map(([projection, data]) => ({
-    projection,
-    items: data.items,
-    openApiUrl: data.openApiUrl,
+const environmentClass = computed(() => {
+  return instanceInfo.value.instance ? 'env-detected' : 'env-unknown';
+});
+
+const environmentStyle = computed(() => {
+  const color = instanceInfo.value.instance?.color;
+  if (!color) return {};
+
+  const hex = color.replace('#', '');
+  if (![3, 6].includes(hex.length)) return {};
+
+  const parseHex = (value: string) =>
+    value.length === 3
+      ? value
+          .split('')
+          .map((c) => c + c)
+          .join('')
+      : value;
+
+  const normalized = parseHex(hex);
+  const r = parseInt(normalized.slice(0, 2), 16);
+  const g = parseInt(normalized.slice(2, 4), 16);
+  const b = parseInt(normalized.slice(4, 6), 16);
+
+  const withAlpha = (a: number) => `rgba(${r}, ${g}, ${b}, ${a})`;
+
+  return {
+    backgroundColor: withAlpha(0.14),
+    borderColor: withAlpha(0.32),
+    color,
+  };
+});
+
+function openSettings() {
+  draftSettings.value = JSON.parse(JSON.stringify(envSettings.value)) as EnvSettings;
+  activeFeature.value = 'settings';
+}
+
+async function saveSettings() {
+  const normalized = (JSON.parse(JSON.stringify(draftSettings.value)) as EnvSettings).map((entry) => ({
+    ...entry,
+    url: normalizeUrl(entry.url),
   }));
-});
+  envSettings.value = normalized;
+  await saveEnvSettings(envSettings.value);
+  await detectInstance();
+  activeFeature.value = 'home';
+}
 
-const filteredCount = computed(() => enhancedRequests.value.length);
+function cancelSettings() {
+  draftSettings.value = JSON.parse(JSON.stringify(envSettings.value)) as EnvSettings;
+  activeFeature.value = 'home';
+}
 
-const formattedEmptyMessage = computed(() => {
-  if (!totalRequests.value) return t('empty_tab_none');
-  if (searchTerm.value.trim()) return t('empty_filter_none');
-  return t('empty_tab_stored');
-});
+function addInstance() {
+  draftSettings.value = [
+    ...draftSettings.value,
+    {
+      id: generateId(),
+      name: `Instance ${draftSettings.value.length + 1}`,
+      url: '',
+      color: '#4f46e5',
+    },
+  ];
+}
 
-onMounted(async () => {
-  await resolveActiveTab();
-  await refreshRequests();
-});
+function removeInstance(id: string) {
+  if (draftSettings.value.length <= 1) return;
+  draftSettings.value = draftSettings.value.filter((item) => item.id !== id);
+}
+
+function previewStyle(id: string) {
+  const target = draftSettings.value.find((item) => item.id === id);
+  const color = target?.color || '#475569';
+  return {
+    backgroundColor: `${color}22`,
+    borderColor: `${color}55`,
+    color,
+  };
+}
 </script>
 
 <template>
   <main class="popup">
-    <header class="header">
-      <div>
-        <p class="eyebrow">{{ t('app_eyebrow') }}</p>
-        <h1>{{ t('header_title') }}</h1>
-        <p v-if="currentTabTitle" class="subtitle">{{ currentTabTitle }}</p>
-      </div>
-      <div class="actions">
-        <button type="button" class="ghost" @click="clearRequests">{{ t('button_clear') }}</button>
-        <button type="button" @click="refreshRequests">{{ t('button_refresh') }}</button>
-      </div>
-    </header>
-
-    <section class="toolbar">
-      <input
-        v-model="searchTerm"
-        type="search"
-        :placeholder="t('search_placeholder')"
-        aria-label="Search"
-      />
-      <span class="counter">{{ filteredCount }} / {{ totalRequests }}</span>
-    </section>
-
-    <section v-if="error" class="error">{{ error }}</section>
-    <section v-else-if="loading" class="loading">{{ t('loading_label') }}</section>
-    <section v-else class="groups">
-      <template v-for="group in groupedRequests" :key="group.projection">
-        <div class="group-header">
-          <div class="group-title">
-            <h2>{{ group.projection }}</h2>
-            <span class="group-count">{{ group.items.length }}</span>
-            <button type="button" class="ghost tiny icon-btn" @click="toggleProjection(group.projection)">
-              <span :class="['chevron', !isProjectionCollapsed(group.projection) ? 'open' : '']">⌃</span>
-            </button>
-          </div>
-          <button
-            v-if="group.openApiUrl"
-            type="button"
-            class="ghost tiny"
-            @click="openDocsByUrl(group.openApiUrl)"
-          >
-            {{ t('button_doc_openapi') }}
+    <template v-if="activeFeature === 'home'">
+      <header class="header">
+        <div class="header-left">
+          <p class="eyebrow">Aurena DevMate</p>
+        </div>
+        <div class="header-right">
+          <span class="badge env" :class="environmentClass" :style="environmentStyle">
+            {{ instanceInfo.instance?.name ?? t('instance_label_unknown') }}
+          </span>
+          <button type="button" class="icon ghost" title="Edit environment settings" @click="openSettings">
+            ✏️
           </button>
         </div>
-        <article v-for="req in group.items" v-show="!isProjectionCollapsed(group.projection)" :key="req.id" class="card">
-          <div class="card-head">
-            <div class="top-row">
-              <div class="left">
-                <span class="badge method">{{ req.method }}</span>
-                <span class="code target" v-html="highlightCustomFields(req, req.target)"></span>
-                <span v-if="req.hasCustomFields" class="badge custom">{{ t('badge_custom_fields') }}</span>
-              </div>
-              <button type="button" class="ghost tiny icon-btn" @click="toggleDetails(req.id)">
-                <span :class="['chevron', isExpanded(req.id) ? 'open' : '']">⌃</span>
+      </header>
+
+      <section class="features">
+        <article
+          v-for="feature in features"
+          :key="feature.id"
+          class="feature-card"
+          :class="{ disabled: !feature.ready }"
+        >
+          <div class="feature-head">
+            <h3>{{ t(feature.titleKey) }}</h3>
+            <span class="badge" :class="feature.ready ? 'live' : 'soon'">
+              {{ feature.ready ? t('feature_badge_live') : t('feature_badge_soon') }}
+            </span>
+          </div>
+          <p class="feature-desc">{{ t(feature.descKey) }}</p>
+          <button
+            type="button"
+            :disabled="!feature.ready"
+            @click="openFeature(feature.id)"
+          >
+            {{ feature.ready ? t('button_open_feature') : t('feature_coming_soon') }}
+          </button>
+        </article>
+      </section>
+    </template>
+
+    <template v-else-if="activeFeature === 'odata'">
+      <OdataSniffer show-back @back="goHome" />
+    </template>
+
+    <template v-else-if="activeFeature === 'settings'">
+      <section class="settings">
+        <header class="settings-head">
+          <div>
+            <p class="eyebrow">{{ t('settings_eyebrow') }}</p>
+            <h2 class="settings-title">{{ t('settings_title') }}</h2>
+            <p class="settings-desc">
+              {{ t('settings_desc') }}
+            </p>
+          </div>
+        </header>
+
+        <div class="settings-grid">
+          <div
+            v-for="item in draftSettings"
+            :key="item.id"
+            class="settings-card"
+          >
+            <div class="settings-card-head">
+              <span class="badge env" :style="previewStyle(item.id)">
+                {{ item.name || t('instance_label_unknown') }}
+              </span>
+              <button
+                v-if="draftSettings.length > 1"
+                type="button"
+                class="icon ghost tiny remove"
+                title="Remove instance"
+                @click="removeInstance(item.id)"
+              >
+                🗑️
               </button>
             </div>
+            <label class="field">
+              <span class="label">{{ t('settings_name_label') }}</span>
+              <input
+                v-model="item.name"
+                type="text"
+                :placeholder="t('settings_name_placeholder')"
+              />
+            </label>
+            <label class="field">
+              <span class="label">{{ t('settings_url_label') }}</span>
+              <input
+                v-model="item.url"
+                type="text"
+                :placeholder="t('settings_url_placeholder')"
+              />
+            </label>
+            <label class="field color-field">
+              <span class="label">{{ t('settings_color_label') }}</span>
+              <input v-model="item.color" type="color" />
+              <input v-model="item.color" type="text" class="color-text" />
+            </label>
           </div>
+        </div>
 
-          <div v-if="isExpanded(req.id)" class="details">
-            <div class="row kv">
-              <div>
-                <span class="label">{{ t('label_projection') }}</span>
-                <span class="value">{{ req.projection || t('label_unknown_projection') }}</span>
-              </div>
-              <div>
-                <span class="label">{{ t('label_endpoint') }}</span>
-                <span class="value monospace" v-html="highlightCustomFields(req, req.url)"></span>
-              </div>
-            </div>
-            <div v-if="req.customFields.length" class="custom-field-list">
-              <span class="label">{{ t('custom_fields_section') }}</span>
-              <div class="chip-row">
-                <span v-for="field in req.customFields" :key="field" class="chip">{{ field }}</span>
-              </div>
-            </div>
-            <div v-if="req.odata" class="params">
-              <div v-if="req.odata.filter">
-                <strong>$filter</strong>
-                <span v-html="highlightCustomFields(req, req.odata.filter)"></span>
-              </div>
-              <div v-if="req.odata.select">
-                <strong>$select</strong>
-                <span v-html="highlightCustomFields(req, req.odata.select)"></span>
-              </div>
-              <div v-if="req.odata.expand">
-                <strong>$expand</strong>
-                <span v-html="highlightCustomFields(req, req.odata.expand)"></span>
-              </div>
-              <div v-if="req.odata.orderby">
-                <strong>$orderby</strong>
-                <span v-html="highlightCustomFields(req, req.odata.orderby)"></span>
-              </div>
-              <div v-if="req.odata.top"><strong>$top</strong> {{ req.odata.top }}</div>
-              <div v-if="req.odata.skip"><strong>$skip</strong> {{ req.odata.skip }}</div>
-            </div>
-          </div>
+        <div class="settings-actions gap">
+          <button type="button" class="icon ghost" title="Add instance" @click="addInstance">＋</button>
+        </div>
 
-          <div class="row actions-row">
-            <button type="button" class="ghost tiny" @click="copyText(req.url, 'url')">{{ t('button_copy_url') }}</button>
-            <button type="button" class="ghost tiny" @click="copyText(req.curl, 'curl')">{{ t('button_copy_curl') }}</button>
-          </div>
-        </article>
-      </template>
+        <p class="helper">{{ t('settings_helper') }}</p>
 
-      <p v-if="!groupedRequests.length" class="empty">{{ formattedEmptyMessage }}</p>
-    </section>
+        <div class="settings-actions">
+          <button type="button" class="ghost" @click="cancelSettings">{{ t('button_cancel') }}</button>
+          <button type="button" @click="saveSettings">{{ t('button_save') }}</button>
+        </div>
+      </section>
+    </template>
+
+    <template v-else>
+      <section class="placeholder">
+        <p class="eyebrow">{{ t('home_eyebrow') }}</p>
+        <h2>{{ t('placeholder_title') }}</h2>
+        <p class="placeholder-desc">{{ t('placeholder_desc') }}</p>
+        <button type="button" class="ghost" @click="goHome">
+          {{ t('button_back_home') }}
+        </button>
+      </section>
+    </template>
   </main>
 </template>
 
@@ -354,8 +340,8 @@ body {
 }
 
 .popup {
-  min-width: 480px;
-  max-width: 580px;
+  min-width: 520px;
+  max-width: 620px;
   padding: 18px;
   font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
   color: #0f172a;
@@ -369,6 +355,16 @@ body {
   align-items: flex-start;
   margin-bottom: 12px;
 }
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.icon {
+  padding: 6px 8px;
+  font-size: 12px;
+  line-height: 1;
+}
 .eyebrow {
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -376,259 +372,190 @@ body {
   margin: 0;
   color: #94a3b8;
 }
-h1 {
-  margin: 2px 0;
-  font-size: 18px;
+.features {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
 }
-.subtitle {
-  margin: 0;
-  color: #64748b;
-  font-size: 12px;
-}
-.actions {
+.feature-card {
+  border: 1px solid rgba(79, 70, 229, 0.08);
+  border-radius: 12px;
+  padding: 14px;
+  background: #fff;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
   display: flex;
+  flex-direction: column;
   gap: 8px;
 }
-.toolbar {
+.feature-card.disabled {
+  opacity: 0.7;
+}
+.feature-head {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 8px;
-  margin-bottom: 12px;
 }
-.toolbar input {
-  flex: 1;
-  border-radius: 8px;
-  border: 1px solid #c7d2fe;
-  padding: 8px 12px;
-  font-size: 12px;
-  background: #fff;
-  color: #0f172a;
-  box-shadow: 0 2px 6px rgba(79, 70, 229, 0.08);
+.feature-head h3 {
+  margin: 0;
+  font-size: 15px;
 }
-.counter {
-  font-size: 12px;
-  color: #64748b;
+.feature-desc {
+  margin: 0;
+  color: #475569;
+  font-size: 13px;
+  min-height: 40px;
 }
 button {
   border-radius: 8px;
   border: none;
-  padding: 6px 12px;
+  padding: 8px 12px;
   font-size: 12px;
   background: linear-gradient(135deg, #4f46e5, #7c3aed);
   color: #fff;
   cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.2s ease;
   box-shadow: 0 8px 16px rgba(79, 70, 229, 0.2);
+}
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+  box-shadow: none;
 }
 button.ghost {
   background: rgba(79, 70, 229, 0.08);
   color: #4f46e5;
   box-shadow: none;
 }
-button.tiny {
-  padding: 4px 8px;
-  font-size: 11px;
-}
-.icon-btn {
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 999px;
-  padding: 0;
-}
-.chevron {
-  display: inline-block;
-  transition: transform 0.15s ease;
-  font-size: 14px;
-  color: #4f46e5;
-}
-.chevron.open {
-  transform: rotate(180deg);
-}
-button:hover {
+button:hover:enabled {
   transform: translateY(-1px);
   box-shadow: 0 10px 18px rgba(79, 70, 229, 0.25);
 }
-.groups {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.group-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: 10px;
-  padding: 4px 2px;
-}
-.group-title {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-}
-.group-header h2 {
-  font-size: 14px;
-  margin: 0;
-  color: #1e1b4b;
-}
-.group-count {
-  background: rgba(79, 70, 229, 0.12);
+.badge {
   border-radius: 999px;
   padding: 2px 8px;
   font-size: 11px;
-  color: #4f46e5;
+  font-weight: 700;
 }
-.card {
-  border: 1px solid rgba(79, 70, 229, 0.08);
-  border-radius: 12px;
-  padding: 12px;
-  background: #fff;
-  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
-  word-break: break-word;
+.badge.live {
+  background: rgba(34, 197, 94, 0.12);
+  color: #15803d;
+  border: 1px solid rgba(34, 197, 94, 0.3);
 }
-.card-head {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  border-bottom: 1px solid rgba(15, 23, 42, 0.05);
-  padding-bottom: 6px;
-}
-.top-row {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  align-items: flex-start;
-}
-.top-row .left {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  align-items: center;
-  flex: 1;
-  min-width: 0;
-}
-.badge {
-  border-radius: 6px;
-  padding: 2px 8px;
-  font-size: 11px;
-  font-weight: 600;
-}
-.badge.method {
-  background: #eef2ff;
-  color: #4338ca;
-}
-.badge.custom {
-  background: rgba(236, 72, 153, 0.1);
-  color: #be185d;
-  border: 1px solid rgba(236, 72, 153, 0.2);
-}
-.head-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.meta-block {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  text-align: right;
-  min-width: 70px;
-}
-.code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
-  font-size: 12px;
-  color: #1e1b4b;
-}
-.code.target {
-  display: block;
-  width: 100%;
-  word-break: break-word;
-  margin-top: 4px;
-}
-.time,
-.status {
-  font-size: 12px;
-  color: #64748b;
-}
-.status {
-  font-weight: 600;
-}
-.details {
-  margin-top: 8px;
-  border-top: 1px solid #e2e8f0;
-  padding-top: 8px;
-}
-.row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  align-items: center;
-}
-.kv {
-  justify-content: space-between;
-}
-.label {
-  display: block;
-  font-size: 11px;
-  color: #94a3b8;
-}
-.value {
-  display: block;
-  font-size: 12px;
-  color: #0f172a;
-}
-.monospace {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
-  word-break: break-all;
-}
-.params {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 4px;
-  font-size: 12px;
-  color: #334155;
-  margin-top: 6px;
-}
-.params strong {
-  color: #4338ca;
-  margin-right: 4px;
-}
-.custom-field-list {
-  margin-top: 8px;
-}
-.chip-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 4px;
-}
-.chip {
+.badge.soon {
   background: rgba(236, 72, 153, 0.12);
   color: #be185d;
   border: 1px solid rgba(236, 72, 153, 0.2);
-  border-radius: 999px;
-  padding: 2px 8px;
-  font-size: 11px;
-  font-weight: 600;
 }
-:deep(.custom-highlight) {
-  color: #b91c1c !important;
-  font-weight: 700;
+.badge.env {
+  background: rgba(79, 70, 229, 0.08);
+  color: #312e81;
+  border: 1px solid rgba(79, 70, 229, 0.16);
+  letter-spacing: 0.06em;
 }
-.actions-row {
-  margin-top: 8px;
-  gap: 6px;
+.badge.env.env-detected {
+  background: rgba(79, 70, 229, 0.08);
+  color: #312e81;
+  border: 1px solid rgba(79, 70, 229, 0.16);
 }
-.loading,
-.error,
-.empty {
+.badge.env.env-unknown {
+  background: rgba(148, 163, 184, 0.2);
+  color: #475569;
+  border-color: rgba(148, 163, 184, 0.35);
+}
+.settings {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.settings-head .settings-title {
+  margin: 4px 0;
+}
+.settings-desc {
+  margin: 0;
+  color: #475569;
   font-size: 13px;
-  color: #64748b;
-  margin: 8px 0;
 }
-.error {
-  color: #b91c1c;
+.settings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+}
+.settings-card {
+  border: 1px solid rgba(79, 70, 229, 0.12);
+  border-radius: 12px;
+  background: #fff;
+  padding: 12px;
+  box-shadow: 0 6px 12px rgba(15, 23, 42, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.settings-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.settings-card .remove {
+  padding: 6px 8px;
+  font-size: 12px;
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.label {
+  font-size: 12px;
+  color: #94a3b8;
+}
+.settings input[type='text'] {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 8px;
+  font-size: 13px;
+}
+.settings input[type='color'] {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 4px;
+  width: 46px;
+  height: 32px;
+  cursor: pointer;
+}
+.color-field {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+.color-text {
+  flex: 1;
+}
+.settings-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.settings-actions.gap {
+  justify-content: flex-start;
+}
+.helper {
+  margin: 0;
+  color: #94a3b8;
+  font-size: 12px;
+}
+.placeholder {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+.placeholder h2 {
+  margin: 0;
+}
+.placeholder-desc {
+  margin: 0;
+  color: #64748b;
+  font-size: 13px;
 }
 </style>

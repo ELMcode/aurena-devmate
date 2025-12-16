@@ -5,9 +5,6 @@
   "header_title": {
     "message": "Requêtes Projection"
   },
-  "tab_label": {
-    "message": "Onglet $1"
-  },
   "button_clear": {
     "message": "Vider"
   },
@@ -50,6 +47,9 @@
   "label_unknown_projection": {
     "message": "Projection inconnue"
   },
+  "button_back_home": {
+    "message": "Retour à l'accueil"
+  },
   "custom_fields_section": {
     "message": "Champs custom détectés"
   },
@@ -58,5 +58,83 @@
   },
   "button_copy_curl": {
     "message": "Copier cURL"
+  },
+  "home_eyebrow": {
+    "message": "Aurena DevMate"
+  },
+  "feature_badge_live": {
+    "message": "Actif"
+  },
+  "feature_badge_soon": {
+    "message": "Bientôt"
+  },
+  "feature_coming_soon": {
+    "message": "Bientôt disponible"
+  },
+  "button_open_feature": {
+    "message": "Ouvrir"
+  },
+  "feature_odata_title": {
+    "message": "OData Sniffer"
+  },
+  "feature_odata_desc": {
+    "message": "Inspecter les projections Aurena, filtres et champs custom directement dans le popup."
+  },
+  "feature_future_title": {
+    "message": "Prochaine fonctionnalité"
+  },
+  "feature_future_desc": {
+    "message": "Réservé pour le prochain outil DevMate."
+  },
+  "placeholder_title": {
+    "message": "Fonctionnalité à venir"
+  },
+  "placeholder_desc": {
+    "message": "Espace réservé pour la prochaine capacité DevMate. Revenez vite."
+  },
+  "instance_label_current": {
+    "message": "Environnement"
+  },
+  "instance_label_unknown": {
+    "message": "Environnement inconnu"
+  },
+  "settings_eyebrow": {
+    "message": "Configuration"
+  },
+  "settings_title": {
+    "message": "Paramètres d'environnement"
+  },
+  "settings_desc": {
+    "message": "Renseignez l'URL de base et la couleur du tag pour chaque environnement."
+  },
+  "settings_name_label": {
+    "message": "Nom de l'environnement"
+  },
+  "settings_name_placeholder": {
+    "message": "Mon UAT, Prod, ..."
+  },
+  "settings_url_label": {
+    "message": "URL de base"
+  },
+  "settings_url_placeholder": {
+    "message": "https://votre-instance.ifs.cloud"
+  },
+  "settings_color_label": {
+    "message": "Couleur du tag"
+  },
+  "settings_helper": {
+    "message": "L'environnement est détecté quand l'URL de l'onglet commence par l'URL configurée."
+  },
+  "button_cancel": {
+    "message": "Annuler"
+  },
+  "button_save": {
+    "message": "Enregistrer"
+  },
+  "button_refresh_context": {
+    "message": "Actualiser"
+  },
+  "instance_refreshing": {
+    "message": "Chargement…"
   }
 }
