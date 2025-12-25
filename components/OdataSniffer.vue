@@ -242,11 +242,18 @@ onMounted(async () => {
         <h1>{{ t('header_title') }}</h1>
       </div>
       <div class="actions">
-        <button v-if="props.showBack" type="button" class="ghost" @click="emit('back')">
-          {{ t('button_back_home') }}
+        <button
+          v-if="props.showBack"
+          type="button"
+          class="btn btn--ghost btn--icon"
+          :aria-label="t('button_back_home')"
+          :title="t('button_back_home')"
+          @click="emit('back')"
+        >
+          <i class="pi pi-arrow-left" aria-hidden="true"></i>
         </button>
-        <button type="button" class="ghost" @click="clearRequests">{{ t('button_clear') }}</button>
-        <button type="button" @click="refreshRequests">{{ t('button_refresh') }}</button>
+        <button type="button" class="btn btn--ghost" @click="clearRequests">{{ t('button_clear') }}</button>
+        <button type="button" class="btn" @click="refreshRequests">{{ t('button_refresh') }}</button>
       </div>
     </header>
 
@@ -268,14 +275,17 @@ onMounted(async () => {
           <div class="group-title">
             <h2>{{ group.projection }}</h2>
             <span class="group-count">{{ group.items.length }}</span>
-            <button type="button" class="ghost tiny icon-btn" @click="toggleProjection(group.projection)">
-              <span :class="['chevron', !isProjectionCollapsed(group.projection) ? 'open' : '']">⌃</span>
+            <button type="button" class="btn btn--ghost btn--tiny btn--icon" @click="toggleProjection(group.projection)">
+              <i
+                :class="['pi', isProjectionCollapsed(group.projection) ? 'pi-chevron-down' : 'pi-chevron-up']"
+                aria-hidden="true"
+              ></i>
             </button>
           </div>
           <button
             v-if="group.openApiUrl"
             type="button"
-            class="ghost tiny"
+            class="btn btn--ghost btn--tiny"
             @click="openDocsByUrl(group.openApiUrl)"
           >
             {{ t('button_doc_openapi') }}
@@ -289,8 +299,8 @@ onMounted(async () => {
                 <span class="code target" v-html="highlightCustomFields(req, req.target)"></span>
                 <span v-if="req.hasCustomFields" class="badge custom">{{ t('badge_custom_fields') }}</span>
               </div>
-              <button type="button" class="ghost tiny icon-btn" @click="toggleDetails(req.id)">
-                <span :class="['chevron', isExpanded(req.id) ? 'open' : '']">⌃</span>
+              <button type="button" class="btn btn--ghost btn--tiny btn--icon" @click="toggleDetails(req.id)">
+                <i :class="['pi', isExpanded(req.id) ? 'pi-chevron-up' : 'pi-chevron-down']" aria-hidden="true"></i>
               </button>
             </div>
           </div>
@@ -335,8 +345,12 @@ onMounted(async () => {
           </div>
 
           <div class="row actions-row">
-            <button type="button" class="ghost tiny" @click="copyText(req.url, 'url')">{{ t('button_copy_url') }}</button>
-            <button type="button" class="ghost tiny" @click="copyText(req.curl, 'curl')">{{ t('button_copy_curl') }}</button>
+            <button type="button" class="btn btn--ghost btn--tiny" @click="copyText(req.url, 'url')">
+              {{ t('button_copy_url') }}
+            </button>
+            <button type="button" class="btn btn--ghost btn--tiny" @click="copyText(req.curl, 'curl')">
+              {{ t('button_copy_curl') }}
+            </button>
           </div>
         </article>
       </template>
@@ -398,48 +412,6 @@ h1 {
 .counter {
   font-size: 12px;
   color: #64748b;
-}
-button {
-  border-radius: 8px;
-  border: none;
-  padding: 6px 12px;
-  font-size: 12px;
-  background: linear-gradient(135deg, #4f46e5, #7c3aed);
-  color: #fff;
-  cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-  box-shadow: 0 8px 16px rgba(79, 70, 229, 0.2);
-}
-button.ghost {
-  background: rgba(79, 70, 229, 0.08);
-  color: #4f46e5;
-  box-shadow: none;
-}
-button.tiny {
-  padding: 4px 8px;
-  font-size: 11px;
-}
-.icon-btn {
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 999px;
-  padding: 0;
-}
-.chevron {
-  display: inline-block;
-  transition: transform 0.15s ease;
-  font-size: 14px;
-  color: #4f46e5;
-}
-.chevron.open {
-  transform: rotate(180deg);
-}
-button:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 10px 18px rgba(79, 70, 229, 0.25);
 }
 .groups {
   display: flex;
