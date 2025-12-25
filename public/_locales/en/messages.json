@@ -80,6 +80,12 @@
   "feature_odata_desc": {
     "message": "Inspect Aurena projections, filters, and custom fields directly from the popup."
   },
+  "feature_inspector_title": {
+    "message": "Field Inspector"
+  },
+  "feature_inspector_desc": {
+    "message": "Scan the current page to list fields, labels, bindings, and highlight them in-place."
+  },
   "feature_future_title": {
     "message": "Next feature"
   },
@@ -134,7 +140,118 @@
   "button_refresh_context": {
     "message": "Refresh"
   },
+  "common_yes": {
+    "message": "Yes"
+  },
+  "common_no": {
+    "message": "No"
+  },
   "instance_refreshing": {
     "message": "Loading…"
+  },
+  "fi_eyebrow": {
+    "message": "UI Inspector"
+  },
+  "fi_title": {
+    "message": "Field Inspector"
+  },
+  "fi_desc": {
+    "message": "Scan the current page to surface labels, bindings, and data attributes. Hover items to highlight them in the page."
+  },
+  "fi_button_scan": {
+    "message": "Scan"
+  },
+  "fi_button_pick": {
+    "message": "Pick"
+  },
+  "fi_button_pick_stop": {
+    "message": "Stop"
+  },
+  "fi_pick_hint": {
+    "message": "Pick mode: hover a field on the page and click to select. Press Esc to exit."
+  },
+  "fi_button_clear_highlight": {
+    "message": "Clear highlights"
+  },
+  "fi_search_placeholder": {
+    "message": "Filter fields…"
+  },
+  "fi_empty": {
+    "message": "No fields detected on this page."
+  },
+  "fi_label_unknown": {
+    "message": "Unnamed field"
+  },
+  "fi_placeholder": {
+    "message": "Placeholder"
+  },
+  "fi_arialabel": {
+    "message": "ARIA label"
+  },
+  "fi_binding": {
+    "message": "Binding hints"
+  },
+  "fi_dataset": {
+    "message": "Data attributes"
+  },
+  "fi_meta_attribute": {
+    "message": "Attribute"
+  },
+  "fi_meta_reference": {
+    "message": "Reference"
+  },
+  "fi_translation_open": {
+    "message": "Open translation"
+  },
+  "fi_meta_entity": {
+    "message": "Entity / LU"
+  },
+  "fi_meta_entityset": {
+    "message": "Entity set"
+  },
+  "fi_meta_view": {
+    "message": "View"
+  },
+  "fi_meta_structure": {
+    "message": "Structure"
+  },
+  "fi_meta_parent": {
+    "message": "Parent entity"
+  },
+  "fi_meta_lov_tag": {
+    "message": "LOV"
+  },
+  "fi_entity_open": {
+    "message": "Open entity"
+  },
+  "fi_entity_config_open": {
+    "message": "Open entity configuration"
+  },
+  "fi_meta_component": {
+    "message": "Component"
+  },
+  "fi_meta_translation": {
+    "message": "Translation path"
+  },
+  "fi_meta_lov": {
+    "message": "LOV"
+  },
+  "fi_meta_datasource": {
+    "message": "Datasource"
+  },
+  "fi_meta_function": {
+    "message": "Function"
+  },
+  "fi_meta_required": {
+    "message": "Required"
+  },
+  "fi_meta_section": {
+    "message": "Element"
+  },
+  "fi_meta_custom": {
+    "message": "Custom field"
+  },
+  "fi_error_scan": {
+    "message": "Unable to scan this page. Is the inspector allowed on this URL?"
   }
 }

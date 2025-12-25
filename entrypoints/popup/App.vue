@@ -2,6 +2,7 @@
 import { browser } from 'wxt/browser';
 import { computed, onMounted, ref } from 'vue';
 import OdataSniffer from '@/components/OdataSniffer.vue';
+import FieldInspector from '@/components/FieldInspector.vue';
 import {
   getDefaultEnvSettings,
   loadEnvSettings,
@@ -21,7 +22,7 @@ const t = (key: MessageKey, substitutions: Array<string | number> = []) => {
   return message || key;
 };
 
-type FeatureId = 'odata' | 'feature2' | 'feature3' | 'settings';
+type FeatureId = 'odata' | 'inspector' | 'feature3' | 'settings';
 type Feature = {
   id: FeatureId;
   titleKey: MessageKey;
@@ -37,10 +38,10 @@ const features: Feature[] = [
     ready: true,
   },
   {
-    id: 'feature2',
-    titleKey: 'feature_future_title',
-    descKey: 'feature_future_desc',
-    ready: false,
+    id: 'inspector',
+    titleKey: 'feature_inspector_title',
+    descKey: 'feature_inspector_desc',
+    ready: true,
   },
   {
     id: 'feature3',
@@ -51,6 +52,7 @@ const features: Feature[] = [
 ];
 
 const activeFeature = ref<'home' | FeatureId>('home');
+const pendingFieldId = ref<string | null>(null);
 
 const instanceInfo = ref<{ instance: EnvInstance | null }>({ instance: null });
 const envSettings = ref<EnvSettings>(getDefaultEnvSettings());
@@ -111,10 +113,23 @@ function goHome() {
   void detectInstance();
 }
 
+async function checkPendingPickedField() {
+  try {
+    const result = await browser.runtime.sendMessage({ type: 'devmate:fi-get-picked' });
+    if (result && typeof result.fieldId === 'string') {
+      pendingFieldId.value = result.fieldId;
+      activeFeature.value = 'inspector';
+    }
+  } catch (err) {
+    console.warn('Check pending picked field error', err);
+  }
+}
+
 onMounted(() => {
   void (async () => {
     await hydrateSettings();
     await detectInstance();
+    await checkPendingPickedField();
   })();
 });
 
@@ -211,8 +226,14 @@ function previewStyle(id: string) {
           <span class="badge env" :class="environmentClass" :style="environmentStyle">
             {{ instanceInfo.instance?.name ?? t('instance_label_unknown') }}
           </span>
-          <button type="button" class="icon ghost" title="Edit environment settings" @click="openSettings">
-            ✏️
+          <button
+            type="button"
+            class="btn btn--ghost btn--icon"
+            title="Edit environment settings"
+            aria-label="Edit environment settings"
+            @click="openSettings"
+          >
+            <i class="pi pi-pencil" aria-hidden="true"></i>
           </button>
         </div>
       </header>
@@ -233,6 +254,7 @@ function previewStyle(id: string) {
           <p class="feature-desc">{{ t(feature.descKey) }}</p>
           <button
             type="button"
+            class="btn"
             :disabled="!feature.ready"
             @click="openFeature(feature.id)"
           >
@@ -244,6 +266,10 @@ function previewStyle(id: string) {
 
     <template v-else-if="activeFeature === 'odata'">
       <OdataSniffer show-back @back="goHome" />
+    </template>
+
+    <template v-else-if="activeFeature === 'inspector'">
+      <FieldInspector show-back :pending-field-id="pendingFieldId" @back="goHome" />
     </template>
 
     <template v-else-if="activeFeature === 'settings'">
@@ -271,11 +297,12 @@ function previewStyle(id: string) {
               <button
                 v-if="draftSettings.length > 1"
                 type="button"
-                class="icon ghost tiny remove"
+                class="btn btn--ghost btn--tiny btn--icon remove"
                 title="Remove instance"
+                aria-label="Remove instance"
                 @click="removeInstance(item.id)"
               >
-                🗑️
+                <i class="pi pi-trash" aria-hidden="true"></i>
               </button>
             </div>
             <label class="field">
@@ -303,14 +330,22 @@ function previewStyle(id: string) {
         </div>
 
         <div class="settings-actions gap">
-          <button type="button" class="icon ghost" title="Add instance" @click="addInstance">＋</button>
+          <button
+            type="button"
+            class="btn btn--ghost btn--icon"
+            title="Add instance"
+            aria-label="Add instance"
+            @click="addInstance"
+          >
+            <i class="pi pi-plus" aria-hidden="true"></i>
+          </button>
         </div>
 
         <p class="helper">{{ t('settings_helper') }}</p>
 
         <div class="settings-actions">
-          <button type="button" class="ghost" @click="cancelSettings">{{ t('button_cancel') }}</button>
-          <button type="button" @click="saveSettings">{{ t('button_save') }}</button>
+          <button type="button" class="btn btn--ghost" @click="cancelSettings">{{ t('button_cancel') }}</button>
+          <button type="button" class="btn" @click="saveSettings">{{ t('button_save') }}</button>
         </div>
       </section>
     </template>
@@ -320,7 +355,7 @@ function previewStyle(id: string) {
         <p class="eyebrow">{{ t('home_eyebrow') }}</p>
         <h2>{{ t('placeholder_title') }}</h2>
         <p class="placeholder-desc">{{ t('placeholder_desc') }}</p>
-        <button type="button" class="ghost" @click="goHome">
+        <button type="button" class="btn btn--ghost" @click="goHome">
           {{ t('button_back_home') }}
         </button>
       </section>
@@ -405,31 +440,6 @@ body {
   color: #475569;
   font-size: 13px;
   min-height: 40px;
-}
-button {
-  border-radius: 8px;
-  border: none;
-  padding: 8px 12px;
-  font-size: 12px;
-  background: linear-gradient(135deg, #4f46e5, #7c3aed);
-  color: #fff;
-  cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.2s ease;
-  box-shadow: 0 8px 16px rgba(79, 70, 229, 0.2);
-}
-button:disabled {
-  cursor: not-allowed;
-  opacity: 0.5;
-  box-shadow: none;
-}
-button.ghost {
-  background: rgba(79, 70, 229, 0.08);
-  color: #4f46e5;
-  box-shadow: none;
-}
-button:hover:enabled {
-  transform: translateY(-1px);
-  box-shadow: 0 10px 18px rgba(79, 70, 229, 0.25);
 }
 .badge {
   border-radius: 999px;

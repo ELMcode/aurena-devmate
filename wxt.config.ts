@@ -26,6 +26,8 @@ export default defineConfig({
     host_permissions: [
       '*://*/ifsapplications/projection/v1/*',
       '*://*/*/ifsapplications/projection/v1/*',
+      '*://*/ifsapplications/web/*',
+      '*://*/*/ifsapplications/web/*',
     ],
   },
 });
