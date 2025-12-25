@@ -80,6 +80,12 @@
   "feature_odata_desc": {
     "message": "Inspecter les projections Aurena, filtres et champs custom directement dans le popup."
   },
+  "feature_inspector_title": {
+    "message": "Inspecteur de champs"
+  },
+  "feature_inspector_desc": {
+    "message": "Scanner la page pour lister les champs, labels, liaisons et les surligner dans la page."
+  },
   "feature_future_title": {
     "message": "Prochaine fonctionnalité"
   },
@@ -134,7 +140,118 @@
   "button_refresh_context": {
     "message": "Actualiser"
   },
+  "common_yes": {
+    "message": "Oui"
+  },
+  "common_no": {
+    "message": "Non"
+  },
   "instance_refreshing": {
     "message": "Chargement…"
+  },
+  "fi_eyebrow": {
+    "message": "Inspecteur UI"
+  },
+  "fi_title": {
+    "message": "Inspecteur de champs"
+  },
+  "fi_desc": {
+    "message": "Scannez la page courante pour remonter labels, liaisons et attributs data. Survolez la liste pour surligner les champs dans la page."
+  },
+  "fi_button_scan": {
+    "message": "Scanner"
+  },
+  "fi_button_pick": {
+    "message": "Sélectionner"
+  },
+  "fi_button_pick_stop": {
+    "message": "Arrêter"
+  },
+  "fi_pick_hint": {
+    "message": "Mode sélection : survolez un champ dans la page puis cliquez. Échap pour quitter."
+  },
+  "fi_button_clear_highlight": {
+    "message": "Effacer les surlignages"
+  },
+  "fi_search_placeholder": {
+    "message": "Filtrer les champs…"
+  },
+  "fi_empty": {
+    "message": "Aucun champ détecté sur cette page."
+  },
+  "fi_label_unknown": {
+    "message": "Champ sans nom"
+  },
+  "fi_placeholder": {
+    "message": "Placeholder"
+  },
+  "fi_arialabel": {
+    "message": "ARIA label"
+  },
+  "fi_binding": {
+    "message": "Indices de liaison"
+  },
+  "fi_dataset": {
+    "message": "Attributs data"
+  },
+  "fi_meta_attribute": {
+    "message": "Attribut"
+  },
+  "fi_meta_reference": {
+    "message": "Référence"
+  },
+  "fi_translation_open": {
+    "message": "Ouvrir la traduction"
+  },
+  "fi_meta_entity": {
+    "message": "Entité / LU"
+  },
+  "fi_meta_entityset": {
+    "message": "Entity set"
+  },
+  "fi_meta_view": {
+    "message": "Vue"
+  },
+  "fi_meta_structure": {
+    "message": "Structure"
+  },
+  "fi_meta_parent": {
+    "message": "Entité parente"
+  },
+  "fi_meta_lov_tag": {
+    "message": "LOV"
+  },
+  "fi_entity_open": {
+    "message": "Ouvrir l'entité"
+  },
+  "fi_entity_config_open": {
+    "message": "Ouvrir la configuration"
+  },
+  "fi_meta_component": {
+    "message": "Composant"
+  },
+  "fi_meta_translation": {
+    "message": "Chemin de traduction"
+  },
+  "fi_meta_lov": {
+    "message": "LOV"
+  },
+  "fi_meta_datasource": {
+    "message": "Datasource"
+  },
+  "fi_meta_function": {
+    "message": "Fonction"
+  },
+  "fi_meta_required": {
+    "message": "Obligatoire"
+  },
+  "fi_meta_section": {
+    "message": "Élément"
+  },
+  "fi_meta_custom": {
+    "message": "Champ custom"
+  },
+  "fi_error_scan": {
+    "message": "Impossible de scanner cette page. L'inspecteur est-il autorisé sur cette URL ?"
   }
 }
