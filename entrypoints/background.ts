@@ -122,7 +122,10 @@ export default defineBackground(() => {
     filters,
   );
 
-  // Message API for the popup.
+  // Store for picked field ID (to pass between popup close and reopen)
+  let pendingPickedField: { tabId: number; fieldId: string } | null = null;
+
+  // Message API for the popup and content scripts.
   browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message?.type === 'getRequests') {
       const tabId = message.tabId ?? sender.tab?.id;
@@ -148,6 +151,33 @@ export default defineBackground(() => {
       requestStore.clear();
       void persistToStorage();
       sendResponse([]);
+      return true;
+    }
+
+    // Handle field picked from content script - store the ID and reopen popup
+    if (message?.type === 'devmate:fi-picked') {
+      const tabId = sender.tab?.id;
+      if (typeof tabId === 'number' && typeof message.id === 'string') {
+        pendingPickedField = { tabId, fieldId: message.id };
+        // Try to reopen the popup (Chrome MV3 API)
+        void (async () => {
+          try {
+            await browser.action.openPopup();
+          } catch (err) {
+            // openPopup may fail in some contexts (e.g., Firefox or user gesture required)
+            console.warn('[DevMate] Could not reopen popup:', err);
+          }
+        })();
+      }
+      sendResponse({ ok: true });
+      return true;
+    }
+
+    // Popup requests any pending picked field
+    if (message?.type === 'devmate:fi-get-picked') {
+      const result = pendingPickedField;
+      pendingPickedField = null; // Clear after retrieval
+      sendResponse(result);
       return true;
     }
 
