@@ -77,6 +77,20 @@
   "button_copy_curl": {
     "message": "Copier cURL"
   },
+  "button_show_more": {
+    "message": "Afficher plus"
+  },
+  "button_show_more_count": {
+    "message": "Afficher $count$ de plus...",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "button_show_less": {
+    "message": "Réduire"
+  },
   "home_eyebrow": {
     "message": "Aurena DevMate"
   },
