@@ -1,37 +1,10 @@
 <script lang="ts" setup>
 import { browser } from 'wxt/browser';
 import { computed, onMounted, ref } from 'vue';
-
-type UiRequest = {
-  id: string;
-  method: string;
-  url: string;
-  projection?: string;
-  resource?: string;
-  odata?: {
-    filter?: string;
-    select?: string;
-    orderby?: string;
-    expand?: string;
-    top?: string;
-    skip?: string;
-    raw: Record<string, string>;
-  };
-  statusCode?: number;
-  time: number;
-  curl: string;
-};
-
-type EnhancedRequest = UiRequest & {
-  when: string;
-  target: string;
-  hasCustomFields: boolean;
-  customFields: string[];
-  highlightRegex?: RegExp | null;
-  openApiUrl?: string | null;
-};
-
-const PROJECTION_MARKER = '/ifsapplications/projection/v1/';
+import { type UiRequest, type EnhancedRequest, type ODataGroup } from '@/types/odata';
+import { type TranslateFn } from '@/types/common';
+import { escapeRegex, buildOpenApiUrl } from '@/utils/odata-helpers';
+import OdataRequestCard from './OdataRequestCard.vue';
 
 const props = defineProps<{ showBack?: boolean }>();
 const emit = defineEmits<{ (e: 'back'): void }>();
@@ -44,9 +17,10 @@ const searchTerm = ref('');
 const expanded = ref(new Set<string>());
 const collapsedProjections = ref(new Set<string>());
 
-type MessageKey = Parameters<typeof browser.i18n.getMessage>[0];
-
-const t = (key: MessageKey, substitutions: Array<string | number> = []) => {
+/**
+ * Standardized translation helper.
+ */
+const t: TranslateFn = (key, substitutions = []) => {
   const message = browser.i18n.getMessage(
     key,
     substitutions.map((item) => String(item)),
@@ -55,14 +29,6 @@ const t = (key: MessageKey, substitutions: Array<string | number> = []) => {
 };
 
 const totalRequests = computed(() => requests.value.length);
-
-function buildOpenApiUrl(req: UiRequest): string | null {
-  if (!req.projection) return null;
-  const markerIndex = req.url.indexOf(PROJECTION_MARKER);
-  if (markerIndex === -1) return null;
-  const base = req.url.slice(0, markerIndex + PROJECTION_MARKER.length);
-  return `${base}${req.projection}.svc/$openapi`;
-}
 
 async function resolveActiveTab() {
   try {
@@ -123,39 +89,11 @@ function toggleDetails(id: string) {
   expanded.value = next;
 }
 
-function isExpanded(id: string) {
-  return expanded.value.has(id);
-}
-
 function toggleProjection(name: string) {
   const next = new Set(collapsedProjections.value);
   if (next.has(name)) next.delete(name);
   else next.add(name);
   collapsedProjections.value = next;
-}
-
-function isProjectionCollapsed(name: string) {
-  return collapsedProjections.value.has(name);
-}
-
-function escapeHtml(value: string) {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
-function escapeRegex(value: string) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-function highlightCustomFields(req: EnhancedRequest, value?: string) {
-  if (!value) return '';
-  const escaped = escapeHtml(value);
-  if (!req.highlightRegex) return escaped;
-  return escaped.replace(req.highlightRegex, '<span class="custom-highlight">$1</span>');
 }
 
 const enhancedRequests = computed<EnhancedRequest[]>(() => {
@@ -180,7 +118,7 @@ const enhancedRequests = computed<EnhancedRequest[]>(() => {
         hasCustomFields,
         customFields,
         highlightRegex,
-        openApiUrl: buildOpenApiUrl(req),
+        openApiUrl: buildOpenApiUrl(req.url, req.projection),
       };
     })
     .filter((req) => {
@@ -201,11 +139,8 @@ const enhancedRequests = computed<EnhancedRequest[]>(() => {
     });
 });
 
-const groupedRequests = computed(() => {
-  const groups = new Map<
-    string,
-    { items: EnhancedRequest[]; openApiUrl?: string | null }
-  >();
+const groupedRequests = computed<ODataGroup[]>(() => {
+  const groups = new Map<string, { items: EnhancedRequest[]; openApiUrl?: string | null }>();
   enhancedRequests.value.forEach((req) => {
     const key = req.projection ?? t('label_unknown_projection');
     const entry = groups.get(key) ?? { items: [], openApiUrl: undefined };
@@ -277,7 +212,7 @@ onMounted(async () => {
             <span class="group-count">{{ group.items.length }}</span>
             <button type="button" class="btn btn--ghost btn--tiny btn--icon" @click="toggleProjection(group.projection)">
               <i
-                :class="['pi', isProjectionCollapsed(group.projection) ? 'pi-chevron-down' : 'pi-chevron-up']"
+                :class="['pi', collapsedProjections.has(group.projection) ? 'pi-chevron-down' : 'pi-chevron-up']"
                 aria-hidden="true"
               ></i>
             </button>
@@ -291,68 +226,18 @@ onMounted(async () => {
             {{ t('button_doc_openapi') }}
           </button>
         </div>
-        <article v-for="req in group.items" v-show="!isProjectionCollapsed(group.projection)" :key="req.id" class="card">
-          <div class="card-head">
-            <div class="top-row">
-              <div class="left">
-                <span class="badge method">{{ req.method }}</span>
-                <span class="code target" v-html="highlightCustomFields(req, req.target)"></span>
-                <span v-if="req.hasCustomFields" class="badge custom">{{ t('badge_custom_fields') }}</span>
-              </div>
-              <button type="button" class="btn btn--ghost btn--tiny btn--icon" @click="toggleDetails(req.id)">
-                <i :class="['pi', isExpanded(req.id) ? 'pi-chevron-up' : 'pi-chevron-down']" aria-hidden="true"></i>
-              </button>
-            </div>
-          </div>
-
-          <div v-if="isExpanded(req.id)" class="details">
-            <div class="row kv">
-              <div>
-                <span class="label">{{ t('label_projection') }}</span>
-                <span class="value">{{ req.projection || t('label_unknown_projection') }}</span>
-              </div>
-              <div>
-                <span class="label">{{ t('label_endpoint') }}</span>
-                <span class="value monospace" v-html="highlightCustomFields(req, req.url)"></span>
-              </div>
-            </div>
-            <div v-if="req.customFields.length" class="custom-field-list">
-              <span class="label">{{ t('custom_fields_section') }}</span>
-              <div class="chip-row">
-                <span v-for="field in req.customFields" :key="field" class="chip">{{ field }}</span>
-              </div>
-            </div>
-            <div v-if="req.odata" class="params">
-              <div v-if="req.odata.filter">
-                <strong>$filter</strong>
-                <span v-html="highlightCustomFields(req, req.odata.filter)"></span>
-              </div>
-              <div v-if="req.odata.select">
-                <strong>$select</strong>
-                <span v-html="highlightCustomFields(req, req.odata.select)"></span>
-              </div>
-              <div v-if="req.odata.expand">
-                <strong>$expand</strong>
-                <span v-html="highlightCustomFields(req, req.odata.expand)"></span>
-              </div>
-              <div v-if="req.odata.orderby">
-                <strong>$orderby</strong>
-                <span v-html="highlightCustomFields(req, req.odata.orderby)"></span>
-              </div>
-              <div v-if="req.odata.top"><strong>$top</strong> {{ req.odata.top }}</div>
-              <div v-if="req.odata.skip"><strong>$skip</strong> {{ req.odata.skip }}</div>
-            </div>
-          </div>
-
-          <div class="row actions-row">
-            <button type="button" class="btn btn--ghost btn--tiny" @click="copyText(req.url, 'url')">
-              {{ t('button_copy_url') }}
-            </button>
-            <button type="button" class="btn btn--ghost btn--tiny" @click="copyText(req.curl, 'curl')">
-              {{ t('button_copy_curl') }}
-            </button>
-          </div>
-        </article>
+        
+        <div v-show="!collapsedProjections.has(group.projection)" class="cards">
+            <OdataRequestCard 
+                v-for="req in group.items" 
+                :key="req.id" 
+                :req="req"
+                :isExpanded="expanded.has(req.id)"
+                :t="t"
+                @toggle="toggleDetails(req.id)"
+                @copy="copyText"
+            />
+        </div>
       </template>
 
       <p v-if="!groupedRequests.length" class="empty">{{ formattedEmptyMessage }}</p>
@@ -361,14 +246,8 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-.sniffer * {
-  box-sizing: border-box;
-}
-
 .sniffer {
   width: 100%;
-  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  color: #0f172a;
 }
 .header {
   display: flex;
@@ -442,135 +321,15 @@ h1 {
   font-size: 11px;
   color: #4f46e5;
 }
-.card {
-  border: 1px solid rgba(79, 70, 229, 0.08);
-  border-radius: 12px;
-  padding: 12px;
-  background: #fff;
-  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
-  word-break: break-word;
+.cards {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
 }
-.card-head {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  border-bottom: 1px solid rgba(15, 23, 42, 0.05);
-  padding-bottom: 6px;
-}
-.top-row {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  align-items: flex-start;
-}
-.top-row .left {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  align-items: center;
-  flex: 1;
-  min-width: 0;
-}
-.badge {
-  border-radius: 6px;
-  padding: 2px 8px;
-  font-size: 11px;
-  font-weight: 600;
-}
-.badge.method {
-  background: #eef2ff;
-  color: #4338ca;
-}
-.badge.custom {
-  background: rgba(236, 72, 153, 0.1);
-  color: #be185d;
-  border: 1px solid rgba(236, 72, 153, 0.2);
-}
-.code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
-  font-size: 12px;
-  color: #1e1b4b;
-}
-.code.target {
-  display: block;
-  width: 100%;
-  word-break: break-word;
-  margin-top: 4px;
-}
-.details {
-  margin-top: 8px;
-  border-top: 1px solid #e2e8f0;
-  padding-top: 8px;
-}
-.row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  align-items: center;
-}
-.kv {
-  justify-content: space-between;
-}
-.label {
-  display: block;
-  font-size: 11px;
-  color: #94a3b8;
-}
-.value {
-  display: block;
-  font-size: 12px;
-  color: #0f172a;
-}
-.monospace {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
-  word-break: break-all;
-}
-.params {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 4px;
-  font-size: 12px;
-  color: #334155;
-  margin-top: 6px;
-}
-.params strong {
-  color: #4338ca;
-  margin-right: 4px;
-}
-.custom-field-list {
-  margin-top: 8px;
-}
-.chip-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 4px;
-}
-.chip {
-  background: rgba(236, 72, 153, 0.12);
-  color: #be185d;
-  border: 1px solid rgba(236, 72, 153, 0.2);
-  border-radius: 999px;
-  padding: 2px 8px;
-  font-size: 11px;
-  font-weight: 600;
-}
-:deep(.custom-highlight) {
-  color: #b91c1c !important;
-  font-weight: 700;
-}
-.actions-row {
-  margin-top: 8px;
-  gap: 6px;
-}
-.loading,
-.error,
-.empty {
+.loading, .error, .empty {
   font-size: 13px;
   color: #64748b;
   margin: 8px 0;
 }
-.error {
-  color: #b91c1c;
-}
+.error { color: #b91c1c; }
 </style>
