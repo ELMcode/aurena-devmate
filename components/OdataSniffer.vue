@@ -14,6 +14,8 @@ const requests = ref<UiRequest[]>([]);
 const loading = ref(true);
 const error = ref<string | null>(null);
 const searchTerm = ref('');
+const filterCustomOnly = ref(false);
+const filterMethod = ref<'all' | 'GET' | 'POST' | 'PATCH'>('all');
 const expanded = ref(new Set<string>());
 const collapsedProjections = ref(new Set<string>());
 
@@ -122,20 +124,30 @@ const enhancedRequests = computed<EnhancedRequest[]>(() => {
       };
     })
     .filter((req) => {
-      if (!q) return true;
-      const haystack = [
-        req.projection,
-        req.resource,
-        req.method,
-        req.url,
-        req.odata?.filter,
-        req.odata?.select,
-        req.odata?.expand,
-      ]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase();
-      return haystack.includes(q);
+      // 1. Text Search
+      if (q) {
+        const haystack = [
+          req.projection,
+          req.resource,
+          req.method,
+          req.url,
+          req.odata?.filter,
+          req.odata?.select,
+          req.odata?.expand,
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
+        if (!haystack.includes(q)) return false;
+      }
+
+      // 2. Custom Fields Filter
+      if (filterCustomOnly.value && !req.hasCustomFields) return false;
+
+      // 3. Method Filter
+      if (filterMethod.value !== 'all' && req.method !== filterMethod.value) return false;
+
+      return true;
     });
 });
 
@@ -193,13 +205,37 @@ onMounted(async () => {
     </header>
 
     <section class="toolbar">
-      <input
-        v-model="searchTerm"
-        type="search"
-        :placeholder="t('search_placeholder')"
-        aria-label="Search"
-      />
-      <span class="counter">{{ filteredCount }} / {{ totalRequests }}</span>
+      <div class="search-box">
+        <input
+          v-model="searchTerm"
+          type="search"
+          :placeholder="t('search_placeholder')"
+          aria-label="Search"
+        />
+        <span class="counter">{{ filteredCount }} / {{ totalRequests }}</span>
+      </div>
+      
+      <div class="filters">
+        <button 
+          type="button" 
+          class="btn btn--tiny" 
+          :class="filterCustomOnly ? '' : 'btn--ghost'"
+          @click="filterCustomOnly = !filterCustomOnly"
+        >
+          <i class="pi pi-filter" aria-hidden="true"></i>
+          {{ t('sniffer_filter_custom') }}
+        </button>
+
+        <div class="method-selector">
+          <label class="sr-only">{{ t('sniffer_filter_method') }}</label>
+          <select v-model="filterMethod" class="select--tiny">
+            <option value="all">{{ t('sniffer_method_all') }}</option>
+            <option value="GET">{{ t('sniffer_method_get') }}</option>
+            <option value="POST">{{ t('sniffer_method_post') }}</option>
+            <option value="PATCH">{{ t('sniffer_method_patch') }}</option>
+          </select>
+        </div>
+      </div>
     </section>
 
     <section v-if="error" class="error">{{ error }}</section>
@@ -274,11 +310,16 @@ h1 {
 }
 .toolbar {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 8px;
   margin-bottom: 12px;
 }
-.toolbar input {
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.search-box input {
   flex: 1;
   border-radius: 8px;
   border: 1px solid #c7d2fe;
@@ -287,6 +328,35 @@ h1 {
   background: #fff;
   color: #0f172a;
   box-shadow: 0 2px 6px rgba(79, 70, 229, 0.08);
+}
+.filters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.method-selector {
+  display: flex;
+  align-items: center;
+}
+.select--tiny {
+    padding: 2px 4px;
+    font-size: 11px;
+    border-radius: 6px;
+    border: 1px solid #c7d2fe;
+    background: #fff;
+    color: #4338ca;
+    cursor: pointer;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
 }
 .counter {
   font-size: 12px;

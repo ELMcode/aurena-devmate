@@ -14,6 +14,24 @@
   "search_placeholder": {
     "message": "Search…"
   },
+  "sniffer_filter_custom": {
+    "message": "Custom Only"
+  },
+  "sniffer_filter_method": {
+    "message": "Method"
+  },
+  "sniffer_method_all": {
+    "message": "All"
+  },
+  "sniffer_method_get": {
+    "message": "GET"
+  },
+  "sniffer_method_post": {
+    "message": "POST"
+  },
+  "sniffer_method_patch": {
+    "message": "PATCH"
+  },
   "loading_label": {
     "message": "Loading…"
   },

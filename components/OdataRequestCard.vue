@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import { computed } from 'vue';
 import { type EnhancedRequest } from '@/types/odata';
 import { type TranslateFn } from '@/types/common';
 import { escapeHtml } from '@/utils/odata-helpers';
@@ -13,6 +14,15 @@ const emit = defineEmits<{
   (e: 'toggle'): void;
   (e: 'copy', text: string, label: string): void;
 }>();
+
+const statusClass = computed(() => {
+  const code = props.req.statusCode;
+  if (!code) return '';
+  if (code >= 200 && code < 300) return 'status--success';
+  if (code >= 400 && code < 500) return 'status--warning';
+  if (code >= 500) return 'status--error';
+  return '';
+});
 
 /**
  * Highlighting logic for custom fields within OData fragments.
@@ -31,6 +41,7 @@ function highlightCustomFields(req: EnhancedRequest, value?: string) {
       <div class="top-row">
         <div class="left">
           <span class="badge method">{{ req.method }}</span>
+          <span v-if="req.statusCode" :class="['badge', statusClass]">{{ req.statusCode }}</span>
           <span class="code target" v-html="highlightCustomFields(req, req.target)"></span>
           <span v-if="req.hasCustomFields" class="badge custom">{{ t('badge_custom_fields') }}</span>
         </div>
@@ -136,6 +147,21 @@ function highlightCustomFields(req: EnhancedRequest, value?: string) {
   background: rgba(236, 72, 153, 0.1);
   color: #be185d;
   border: 1px solid rgba(236, 72, 153, 0.2);
+}
+.status--success {
+  background: rgba(34, 197, 94, 0.12);
+  color: #15803d;
+  border: 1px solid rgba(34, 197, 94, 0.2);
+}
+.status--warning {
+  background: rgba(245, 158, 11, 0.12);
+  color: #b45309;
+  border: 1px solid rgba(245, 158, 11, 0.2);
+}
+.status--error {
+  background: rgba(239, 68, 68, 0.12);
+  color: #b91c1c;
+  border: 1px solid rgba(239, 68, 68, 0.2);
 }
 .code {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
