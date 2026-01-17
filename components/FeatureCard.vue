@@ -4,11 +4,17 @@ import { type TranslateFn, type Feature, type FeatureId } from '@/types/common';
 const props = defineProps<{
   feature: Feature;
   t: TranslateFn;
+  toggleState?: boolean;
 }>();
 
 const emit = defineEmits<{
   (e: 'open', id: FeatureId): void;
+  (e: 'toggle', id: FeatureId, enabled: boolean): void;
 }>();
+
+function handleToggle() {
+  emit('toggle', props.feature.id, !props.toggleState);
+}
 </script>
 
 <template>
@@ -23,7 +29,24 @@ const emit = defineEmits<{
       </span>
     </div>
     <p class="feature-desc">{{ t(feature.descKey) }}</p>
+    
+    <!-- Toggle Mode -->
     <button
+      v-if="feature.toggleMode && feature.ready"
+      type="button"
+      class="toggle-btn"
+      :class="{ active: toggleState }"
+      @click="handleToggle"
+    >
+      <span class="toggle-track">
+        <span class="toggle-thumb"></span>
+      </span>
+      <span class="toggle-label">{{ toggleState ? t('common_on') : t('common_off') }}</span>
+    </button>
+    
+    <!-- Open Button (default) -->
+    <button
+      v-else
       type="button"
       class="btn"
       :disabled="!feature.ready"
@@ -79,5 +102,51 @@ const emit = defineEmits<{
   background: rgba(236, 72, 153, 0.12);
   color: #be185d;
   border: 1px solid rgba(236, 72, 153, 0.2);
+}
+
+/* Toggle Switch Styles */
+.toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 0;
+  width: 100%;
+}
+.toggle-track {
+  position: relative;
+  width: 40px;
+  height: 22px;
+  background: #cbd5e1;
+  border-radius: 11px;
+  transition: background 0.2s ease;
+}
+.toggle-btn.active .toggle-track {
+  background: #4f46e5;
+}
+.toggle-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s ease;
+}
+.toggle-btn.active .toggle-thumb {
+  transform: translateX(18px);
+}
+.toggle-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+}
+.toggle-btn.active .toggle-label {
+  color: #4f46e5;
 }
 </style>

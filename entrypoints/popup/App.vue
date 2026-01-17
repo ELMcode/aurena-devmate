@@ -25,6 +25,7 @@ const t: TranslateFn = (key, substitutions = []) => {
 const features: Feature[] = [
   { id: 'odata', titleKey: 'feature_odata_title', descKey: 'feature_odata_desc', ready: true },
   { id: 'inspector', titleKey: 'feature_inspector_title', descKey: 'feature_inspector_desc', ready: true },
+  { id: 'blur', titleKey: 'feature_blur_title', descKey: 'feature_blur_desc', ready: true, toggleMode: true },
   { id: 'feature3', titleKey: 'feature_future_title', descKey: 'feature_future_desc', ready: false },
 ];
 
@@ -33,6 +34,7 @@ const pendingFieldId = ref<string | null>(null);
 const envSettings = ref<EnvSettings>(getDefaultEnvSettings());
 const detectedInstance = ref<EnvInstance | null>(null);
 const activeTabId = ref<number | null>(null);
+const blurActive = ref(false);
 
 const STORAGE_NAV_PREFIX = 'devmate:nav-state:';
 
@@ -87,6 +89,34 @@ async function handleSaveSettings(newSettings: EnvSettings) {
 }
 
 /**
+ * Toggles blur mode on the active tab.
+ */
+async function handleBlurToggle(id: FeatureId, enabled: boolean) {
+  if (id !== 'blur' || activeTabId.value === null) return;
+  try {
+    await browser.tabs.sendMessage(activeTabId.value, { type: 'devmate:blur-toggle', enabled });
+    blurActive.value = enabled;
+  } catch (err) {
+    console.error('Blur toggle error', err);
+  }
+}
+
+/**
+ * Syncs blur status from content script on popup open.
+ */
+async function syncBlurStatus() {
+  if (activeTabId.value === null) return;
+  try {
+    const response = await browser.tabs.sendMessage(activeTabId.value, { type: 'devmate:blur-status' });
+    if (response && typeof response.active === 'boolean') {
+      blurActive.value = response.active;
+    }
+  } catch {
+    blurActive.value = false;
+  }
+}
+
+/**
  * Priority 1: Check if the user just picked a field (re-entry from background).
  */
 async function checkPendingPickedField(): Promise<boolean> {
@@ -131,6 +161,7 @@ watch(activeFeature, async (newVal) => {
 onMounted(async () => {
   await hydrateSettings();
   await detectInstance();
+  await syncBlurStatus();
   
   // Try specialized re-entry first, then regular persistence
   const wasPicked = await checkPendingPickedField();
@@ -178,7 +209,9 @@ const environmentStyle = computed(() => {
             :key="feature.id" 
             :feature="feature" 
             :t="t"
+            :toggleState="feature.id === 'blur' ? blurActive : undefined"
             @open="openFeature"
+            @toggle="handleBlurToggle"
         />
       </section>
     </template>
