@@ -20,6 +20,24 @@
   "sniffer_filter_method": {
     "message": "Méthode"
   },
+  "sniffer_filter_status": {
+    "message": "Status"
+  },
+  "sniffer_status_all": {
+    "message": "Tous"
+  },
+  "sniffer_status_2xx": {
+    "message": "2xx Succès"
+  },
+  "sniffer_status_3xx": {
+    "message": "3xx Redir."
+  },
+  "sniffer_status_4xx": {
+    "message": "4xx Erreur Client"
+  },
+  "sniffer_status_5xx": {
+    "message": "5xx Erreur Serveur"
+  },
   "sniffer_method_all": {
     "message": "Toutes"
   },

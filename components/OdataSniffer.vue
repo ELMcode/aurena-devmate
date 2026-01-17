@@ -16,6 +16,7 @@ const error = ref<string | null>(null);
 const searchTerm = ref('');
 const filterCustomOnly = ref(false);
 const filterMethod = ref<'all' | 'GET' | 'POST' | 'PATCH'>('all');
+const filterStatus = ref<'all' | '2xx' | '3xx' | '4xx' | '5xx'>('all');
 const expanded = ref(new Set<string>());
 const collapsedProjections = ref(new Set<string>());
 
@@ -147,6 +148,15 @@ const enhancedRequests = computed<EnhancedRequest[]>(() => {
       // 3. Method Filter
       if (filterMethod.value !== 'all' && req.method !== filterMethod.value) return false;
 
+      // 4. Status Filter
+      if (filterStatus.value !== 'all') {
+        const code = req.statusCode ?? 0;
+        if (filterStatus.value === '2xx' && (code < 200 || code >= 300)) return false;
+        if (filterStatus.value === '3xx' && (code < 300 || code >= 400)) return false;
+        if (filterStatus.value === '4xx' && (code < 400 || code >= 500)) return false;
+        if (filterStatus.value === '5xx' && code < 500) return false;
+      }
+
       return true;
     });
 });
@@ -233,6 +243,17 @@ onMounted(async () => {
             <option value="GET">{{ t('sniffer_method_get') }}</option>
             <option value="POST">{{ t('sniffer_method_post') }}</option>
             <option value="PATCH">{{ t('sniffer_method_patch') }}</option>
+          </select>
+        </div>
+
+        <div class="method-selector">
+          <label class="sr-only">{{ t('sniffer_filter_status') }}</label>
+          <select v-model="filterStatus" class="select--tiny">
+            <option value="all">{{ t('sniffer_status_all') }}</option>
+            <option value="2xx">{{ t('sniffer_status_2xx') }}</option>
+            <option value="3xx">{{ t('sniffer_status_3xx') }}</option>
+            <option value="4xx">{{ t('sniffer_status_4xx') }}</option>
+            <option value="5xx">{{ t('sniffer_status_5xx') }}</option>
           </select>
         </div>
       </div>

@@ -333,6 +333,7 @@ function formatOData(req: EnhancedRequest, value?: string) {
 .value-container.is-truncated {
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
