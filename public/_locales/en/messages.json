@@ -14,6 +14,42 @@
   "search_placeholder": {
     "message": "Search…"
   },
+  "sniffer_filter_custom": {
+    "message": "Custom Only"
+  },
+  "sniffer_filter_method": {
+    "message": "Method"
+  },
+  "sniffer_filter_status": {
+    "message": "Status"
+  },
+  "sniffer_status_all": {
+    "message": "All"
+  },
+  "sniffer_status_2xx": {
+    "message": "2xx Success"
+  },
+  "sniffer_status_3xx": {
+    "message": "3xx Redir."
+  },
+  "sniffer_status_4xx": {
+    "message": "4xx Client Err."
+  },
+  "sniffer_status_5xx": {
+    "message": "5xx Server Err."
+  },
+  "sniffer_method_all": {
+    "message": "All"
+  },
+  "sniffer_method_get": {
+    "message": "GET"
+  },
+  "sniffer_method_post": {
+    "message": "POST"
+  },
+  "sniffer_method_patch": {
+    "message": "PATCH"
+  },
   "loading_label": {
     "message": "Loading…"
   },
@@ -58,6 +94,20 @@
   },
   "button_copy_curl": {
     "message": "Copy cURL"
+  },
+  "button_show_more": {
+    "message": "Show more"
+  },
+  "button_show_more_count": {
+    "message": "Show $count$ more...",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "button_show_less": {
+    "message": "Show less"
   },
   "home_eyebrow": {
     "message": "Aurena DevMate"
