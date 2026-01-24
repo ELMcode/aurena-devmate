@@ -5,13 +5,15 @@ import { browser } from 'wxt/browser';
  */
 export type MessageKey = Parameters<typeof browser.i18n.getMessage>[0];
 
-export type FeatureId = 'odata' | 'inspector' | 'feature3' | 'settings';
+export type FeatureId = 'odata' | 'inspector' | 'blur' | 'feature3' | 'settings';
 
 export type Feature = {
     id: FeatureId;
     titleKey: MessageKey;
     descKey: MessageKey;
     ready: boolean;
+    /** If true, this feature shows a toggle switch instead of an "Open" button. */
+    toggleMode?: boolean;
 };
 
 /**

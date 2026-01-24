@@ -56,15 +56,3 @@ export function parseProjectionRequest(url: string): ParsedProjectionRequest | n
     odata,
   };
 }
-
-export function buildCurlCommand(method: string, url: string, headers?: Array<{ name: string; value: string }>): string {
-  const parts = [`curl -X ${method.toUpperCase()}`, `'${url}'`];
-  if (headers) {
-    headers
-      .filter((h) => !!h.value)
-      .forEach((h) => {
-        parts.push(`-H '${h.name}: ${h.value}'`);
-      });
-  }
-  return parts.join(' ');
-}

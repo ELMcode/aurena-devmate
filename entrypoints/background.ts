@@ -1,4 +1,5 @@
-import { buildCurlCommand, parseProjectionRequest } from '@/utils/ifs-odata';
+import { parseProjectionRequest } from '@/utils/ifs-odata';
+import { buildCurlCommand } from '@/utils/odata-helpers';
 import type { ODataParams } from '@/utils/ifs-odata';
 import type { Browser } from 'wxt/browser';
 

@@ -142,6 +142,12 @@
   "feature_future_desc": {
     "message": "Réservé pour le prochain outil DevMate."
   },
+  "feature_blur_title": {
+    "message": "Flouter les champs"
+  },
+  "feature_blur_desc": {
+    "message": "Masquer les valeurs sensibles pour les partages, enregistrements et captures d'écran."
+  },
   "placeholder_title": {
     "message": "Fonctionnalité à venir"
   },
@@ -195,6 +201,12 @@
   },
   "common_no": {
     "message": "Non"
+  },
+  "common_on": {
+    "message": "Actif"
+  },
+  "common_off": {
+    "message": "Inactif"
   },
   "instance_refreshing": {
     "message": "Chargement…"
